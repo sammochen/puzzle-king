@@ -5,16 +5,22 @@
 // search What a monte carlo tree search
 
 struct MonteCarloNode {
-
     Board board;
     std::vector<Move> moves;
     std::vector<MonteCarloNode *> children;
 
+    // number of children
+    int numMoves;
+    bool expanded = false;
     bool isTerminal = false;
     double initialV = 0;
-    std::vector<double> P;    // probability of each move
-    std::vector<double> N;    // number of visits
-    std::vector<double> sumV; // number of visits
+
+    // probability of each move - the higher the more favourable the move
+    std::vector<double> P;
+    // number of visits
+    std::vector<double> N;
+    // sum of the scores from the n visits
+    std::vector<double> sumV;
 
     MonteCarloNode(const Board &board) {
 
@@ -22,7 +28,25 @@ struct MonteCarloNode {
 
         this->board = board;
         moves = board.possibleMoves();
+        numMoves = moves.size();
+        std::cout << "making new node, numMoves: " << numMoves << std::endl;
+    }
 
+    double getConfidence(const int moveIndex) const {
+        int totalN = std::accumulate(N.begin(), N.end(), 0);
+        int n = N[moveIndex];
+
+        double p = P[moveIndex];
+        double q = sumV[moveIndex] == 0 ? 0 : sumV[moveIndex] / n;
+
+        return q + 1.41 * p * (std::sqrt(totalN)) / (1 + n);
+    }
+
+    double expandNode() {
+        assert(!expanded);
+        expanded = true;
+
+        // terminal conditions
         if (board.getStatus() == Status::WHITE_WIN) {
             isTerminal = true;
             if (board.turn == Color::WHITE) {
@@ -30,7 +54,7 @@ struct MonteCarloNode {
             } else {
                 initialV = -1000;
             }
-            return;
+            return initialV;
 
         } else if (board.getStatus() == Status::BLACK_WIN) {
             isTerminal = true;
@@ -40,28 +64,37 @@ struct MonteCarloNode {
                 initialV = 1000;
             }
 
-            return;
+            return initialV;
         }
 
-        // you predict a pi (value of each move) as well as current v
-        P.assign(moves.size(), 0);
-        N.assign(moves.size(), 0);
-        children.assign(moves.size(), 0);
+        initialV = board.heuristic();
 
-        for (int i = 0; i < moves.size(); i++) {
-            const auto &move = moves[i];
+        // when you expand, you use a heuristic
+        P.assign(numMoves, 0);
+        N.assign(numMoves, 0);
+        sumV.assign(numMoves, 0);
+        children.assign(numMoves, nullptr);
 
-            Board nextBoard = board.makeMove(move);
-
-            // populate pi
+        for (int i = 0; i < numMoves; i++) {
+            Board nextBoard = board.makeMove(moves[i]);
+            P[i] = -nextBoard.heuristic(); // heuristic
         }
+
+        double PSum = accumulate(P.begin(), P.end(), 0);
+        for (double &x : P) {
+            x /= PSum;
+        }
+
+        return initialV;
     }
-
-    double getConfidence(const int moveIndex) const {}
 
     // Return the valuation of the board. For now, we'll use point count, and
     // win/loss is +- 1000 points
     double searchOnce() {
+        if (!expanded) {
+            return expandNode();
+        }
+
         if (isTerminal) {
             return initialV;
         }
@@ -116,9 +149,10 @@ struct MonteCarloNode {
 
 struct Agent {
     // An agent makes a MCTS node, explores it, and returns the best move
-    Move makeBestMove(const Board &board, int numSearches) {
-        auto root = new MonteCarloNode(board);
+    Move chooseBestMove(const Board &board, int numSearches) const {
+        auto *root = new MonteCarloNode(board);
         for (int i = 0; i < numSearches; i++) {
+            std::cout << "searching " << i << std::endl;
             root->searchOnce();
         }
 
