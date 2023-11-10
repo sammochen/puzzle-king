@@ -31,7 +31,7 @@ std::ostream &operator<<(std::ostream &os, const Move &move) {
 
 enum Status { WHITE_WIN = 0, BLACK_WIN = 1, IN_PROGRESS = 2 };
 
-enum Color { WHITE = 0, BLACK = 1 };
+enum class Color { WHITE = 0, BLACK = 1 };
 
 struct Piece {
     virtual char display() const = 0;
@@ -41,7 +41,8 @@ struct Piece {
     virtual std::vector<Square> getMovableSquares(const Square &cur,
                                                   const Board &board) {
         // throw std::runtime_error("unimplemented");
-        return {{0, 0}}; // every piece can move to 0,0  lol
+        return {
+            {0, 0}, {7, 4}, {7, 5}, {7, 7}}; // every piece can move to 0,0  lol
     };
 };
 
@@ -127,14 +128,31 @@ struct Board {
     Board makeMove(const Move &move) const {
         // note - doesnt handle en passent and castling and promotion
         Board copy = *this;
+        copy.turn = turn == Color::BLACK ? Color::WHITE : Color::BLACK;
         copy.pieces[move.to.row][move.to.col] =
             copy.pieces[move.from.row][move.from.col];
         copy.pieces[move.from.row][move.from.col] = std::nullopt;
         return copy;
     }
 
+    Color other_color(const Color &c) const {
+        return c == Color::WHITE ? Color::BLACK : Color::WHITE;
+    }
+
+    bool inCheck() const {
+        // if it is white's turn, you are in check if some piece can capture the
+        // king
+        Board copy = *this;
+        copy.turn = other_color(copy.turn);
+
+        // for each possible move,
+    }
+
     // and check if the game is over
-    Status getStatus() const { return Status::IN_PROGRESS; }
+    Status getStatus() const {
+        // if the king is in check, and there are no legal moves, game over
+        return Status::IN_PROGRESS;
+    }
 
     void print_char(int row, int col) {
         const auto &colored_piece = pieces[row][col];
@@ -167,7 +185,7 @@ struct Board {
         }
     }
 
-    double heuristic() const {
+    double heuristic() const { // return positive when WHITE is winning
         double sum = 0;
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
@@ -175,7 +193,7 @@ struct Board {
                 if (piece == std::nullopt)
                     continue; // no piece here
 
-                double multiplier = piece->first == turn ? 1 : -1;
+                double multiplier = piece->first == Color::WHITE ? 1 : -1;
                 sum += piece->second->getValue() * multiplier;
             }
         }

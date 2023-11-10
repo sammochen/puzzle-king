@@ -1,6 +1,7 @@
 #pragma once
 
 #include "board.h"
+#include "cmath"
 // An agent gets a board and decides what to do. I want to do a monte carlo tree
 // search What a monte carlo tree search
 
@@ -39,7 +40,10 @@ struct MonteCarloNode {
         double p = P[moveIndex];
         double q = sumV[moveIndex] == 0 ? 0 : sumV[moveIndex] / n;
 
-        return q + 1.41 * p * (std::sqrt(totalN)) / (1 + n);
+        double result = q + 1.41 * p * (std::sqrt(totalN)) / (1 + n);
+
+        assert(isfinite(result));
+        return result;
     }
 
     double expandNode() {
@@ -80,9 +84,16 @@ struct MonteCarloNode {
             P[i] = -nextBoard.heuristic(); // heuristic
         }
 
-        double PSum = accumulate(P.begin(), P.end(), 0);
-        for (double &x : P) {
-            x /= PSum;
+        double maxP = *max_element(P.begin(), P.end());
+        double minP = *min_element(P.begin(), P.end());
+        double pRange = maxP - minP;
+
+        if (pRange == 0) {
+            P.assign(P.size(), 0);
+        } else {
+            for (double &x : P) {
+                x = (x - minP) / pRange;
+            }
         }
 
         return initialV;
@@ -102,13 +113,14 @@ struct MonteCarloNode {
         //  choose the move with the highest confidence and explore it
         double bestConfidence = -1e9;
         int bestIndex = -1;
-        for (int i = 0; i < P.size(); i++) {
+        for (int i = 0; i < numMoves; i++) {
             const auto curConfidence = getConfidence(i);
             if (curConfidence >= bestConfidence) {
                 bestConfidence = curConfidence;
                 bestIndex = i;
             }
         }
+        std::cout << bestConfidence << ' ' << bestIndex << std::endl;
 
         // if game finishes
 
