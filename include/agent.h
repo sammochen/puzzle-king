@@ -1,12 +1,12 @@
 #pragma once
 
-#include "board.h"
 #include "cmath"
+#include "game.h"
 // An agent gets a board and decides what to do. I want to do a monte carlo tree
 // search What a monte carlo tree search
 
 struct MonteCarloNode {
-    Board board;
+    Game game;
     std::vector<Move> moves;
     std::vector<MonteCarloNode *> children;
 
@@ -23,12 +23,12 @@ struct MonteCarloNode {
     // sum of the scores from the n visits
     std::vector<double> sumV;
 
-    MonteCarloNode(const Board &board) {
+    MonteCarloNode(const Game &game) {
 
         // When you initialise a node, you "predict" each move first
 
-        this->board = board;
-        moves = board.possibleMoves();
+        this->game = game;
+        moves = game.possibleMoves();
         numMoves = moves.size();
         std::cout << "making new node, numMoves: " << numMoves << std::endl;
     }
@@ -51,18 +51,18 @@ struct MonteCarloNode {
         expanded = true;
 
         // terminal conditions
-        if (board.getStatus() == Status::WHITE_WIN) {
+        if (game.getStatus() == Status::WHITE_WIN) {
             isTerminal = true;
-            if (board.turn == Color::WHITE) {
+            if (game.turn() == Color::White) {
                 initialV = 1000;
             } else {
                 initialV = -1000;
             }
             return initialV;
 
-        } else if (board.getStatus() == Status::BLACK_WIN) {
+        } else if (game.getStatus() == Status::BLACK_WIN) {
             isTerminal = true;
-            if (board.turn == Color::WHITE) {
+            if (game.turn() == Color::White) {
                 initialV = -1000;
             } else {
                 initialV = 1000;
@@ -70,6 +70,8 @@ struct MonteCarloNode {
 
             return initialV;
         }
+
+        
 
         initialV = board.heuristic();
 
@@ -126,7 +128,7 @@ struct MonteCarloNode {
 
         if (children[bestIndex] == nullptr) {
             children[bestIndex] =
-                new MonteCarloNode(board.makeMove(moves[bestIndex]));
+                new MonteCarloNode(game.makeMove(moves[bestIndex]));
 
             return children[bestIndex]->initialV;
         } else {
@@ -161,8 +163,8 @@ struct MonteCarloNode {
 
 struct Agent {
     // An agent makes a MCTS node, explores it, and returns the best move
-    Move chooseBestMove(const Board &board, int numSearches) const {
-        auto *root = new MonteCarloNode(board);
+    Move chooseBestMove(const Game &game, int numSearches) const {
+        auto *root = new MonteCarloNode(game);
         for (int i = 0; i < numSearches; i++) {
             std::cout << "searching " << i << std::endl;
             root->searchOnce();

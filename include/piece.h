@@ -2,7 +2,17 @@
 #include <cctype>
 #include <optional>
 
-enum class Color { WHITE = 0, BLACK = 1 };
+struct Color {
+    enum Value { White, Black } value;
+    constexpr Color(Value v) : value(v) {}
+
+    constexpr Color other() const {
+        return value == White ? Color::Black : Color::White;
+    }
+
+    constexpr operator Value() const { return value; }
+    explicit operator bool() const = delete;
+};
 
 struct Piece {
     enum Value { King, Queen, Rook, Bishop, Knight, Pawn } value;
@@ -46,7 +56,7 @@ struct ColoredPiece {
             return std::nullopt;
         } else {
             const char lowerC = std::tolower(c);
-            const Color color = (lowerC == c) ? Color::BLACK : Color::WHITE;
+            const Color color = (lowerC == c) ? Color::Black : Color::White;
             return {{color, *pieceOpt}};
         }
     }
