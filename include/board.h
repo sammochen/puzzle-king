@@ -1,5 +1,6 @@
 #pragma once
 
+#include "piece.h"
 #include "terminal_color.h"
 
 #include <iostream>
@@ -31,78 +32,112 @@ std::ostream &operator<<(std::ostream &os, const Move &move) {
 
 enum Status { WHITE_WIN = 0, BLACK_WIN = 1, IN_PROGRESS = 2 };
 
-enum class Color { WHITE = 0, BLACK = 1 };
+// struct Piece {
+//     virtual char display() const = 0;
+//     virtual double getValue() const = 0;
 
-struct Piece {
-    virtual char display() const = 0;
-    virtual double getValue() const = 0;
+//     // true if you can move from->to
+//     virtual std::vector<Square> getMovableSquares(const Square &cur,
+//                                                   const Board &board) const {
+//         // throw std::runtime_error("unimplemented");
+//         return {{0, 0},
+//                 {7, 4},
+//                 {7, 5},
+//                 {7, 7},
+//                 {7, 6}}; // every piece can move to 0,0  lol
+//     };
+// };
 
-    // true if you can move from->to
-    virtual std::vector<Square> getMovableSquares(const Square &cur,
-                                                  const Board &board) {
-        // throw std::runtime_error("unimplemented");
-        return {
-            {0, 0}, {7, 4}, {7, 5}, {7, 7}}; // every piece can move to 0,0  lol
-    };
-};
+// struct Pawn : Piece {
+//     char display() const override { return 'P'; }
+//     double getValue() const override { return 1; }
+// };
+// struct Knight : Piece {
+//     char display() const override { return 'N'; }
+//     double getValue() const override { return 3; }
+// };
+// struct Bishop : Piece {
+//     char display() const override { return 'B'; }
+//     double getValue() const override { return 3; }
+// };
+// struct Rook : Piece {
+//     char display() const override { return 'R'; }
+//     double getValue() const override { return 5; }
+//     std::vector<Square> getMovableSquares(const Square &cur,
+//                                           const Board &board) const override
+//                                           {
 
-struct Pawn : Piece {
-    char display() const override { return 'P'; }
-    double getValue() const override { return 1; }
-};
-struct Knight : Piece {
-    char display() const override { return 'N'; }
-    double getValue() const override { return 3; }
-};
-struct Bishop : Piece {
-    char display() const override { return 'B'; }
-    double getValue() const override { return 3; }
-};
-struct Rook : Piece {
-    char display() const override { return 'R'; }
-    double getValue() const override { return 5; }
-};
-struct Queen : Piece {
-    char display() const override { return 'Q'; }
-    double getValue() const override { return 9; }
-};
-struct King : Piece {
-    char display() const override { return 'K'; }
-    double getValue() const override { return 10000; }
-};
+//         const auto curColor = board.pieces[cur.row][cur.col]->first;
 
-using ColoredPiece = std::pair<Color, Piece *>;
+//         vector<int> di = {0, 0, 1, -1};
+//         vector<int> dj = {1, -1, 0, 0};
+
+//         std::vector<Square> result;
+
+//         for (int d = 0; d < 4; d++) {
+//             int row = cur.row + di[d];
+//             int col = cur.col + dj[d];
+//             while (1) {
+//                 if (row < 0 || row >= 8 || col < 0 || col >= 8) {
+//                     break;
+//                 }
+//                 if (board.pieces[row][col] &&
+//                     board.pieces[row][col]->first == curColor) {
+//                     break; // cannot go past own pieces
+//                 }
+
+//                 result.push_back({row, col});
+//                 if (board.pieces[row][col]) {
+//                     break; // other piece
+//                 }
+//             }
+//         }
+
+//         return result;
+//     };
+// };
+// struct Queen : Piece {
+//     char display() const override { return 'Q'; }
+//     double getValue() const override { return 9; }
+// };
+// struct King : Piece {
+//     char display() const override { return 'K'; }
+//     double getValue() const override { return 10000; }
+// };
 
 // Captures the board state
 struct Board {
+    // a1 = 00, h8 = 77
     std::vector<std::vector<std::optional<ColoredPiece>>> pieces;
     Color turn = Color::WHITE;
 
-    // initialises the board
-    Board() {
+    Board(const std::string &s, const Color &turn) : turn(turn) {
+        assert(s.size() == 64);
         pieces.assign(
             8, std::vector<std::optional<ColoredPiece>>(8, std::nullopt));
 
-        for (Color color : {Color::WHITE, Color::BLACK}) {
-            const int back_row = color == Color::WHITE ? 0 : 7;
-            pieces[back_row][0] = std::make_pair(color, new Rook());
-            pieces[back_row][1] = std::make_pair(color, new Knight());
-            pieces[back_row][2] = std::make_pair(color, new Bishop());
-            pieces[back_row][3] = std::make_pair(color, new Queen());
-            pieces[back_row][4] = std::make_pair(color, new King());
-            pieces[back_row][5] = std::make_pair(color, new Bishop());
-            pieces[back_row][6] = std::make_pair(color, new Knight());
-            pieces[back_row][7] = std::make_pair(color, new Rook());
-
-            const int front_row = color == Color::WHITE ? 1 : 6;
-            for (int col = 0; col < 8; col++) {
-                pieces[front_row][col] = std::make_pair(color, new Pawn());
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                int row = 7 - i;
+                int col = j;
+                pieces[row][col] = ColoredPiece::fromChar(s[i * 8 + j]);
             }
         }
     }
 
-    // as an interface, all it cares about is: what are the legal moves, and
-    // applying the legal move
+    Board()
+        : Board(std::string("rnbqkbnr"
+                            "pppppppp"
+                            "--------"
+                            "--------"
+                            "--------"
+                            "--------"
+                            "PPPPPPPP"
+                            "RNBQKBNR"),
+                Color::WHITE) {}
+
+    // possible by piece movement, but not by legality
+    // e.g. might move but leave king in check
     std::vector<Move> possibleMoves() const {
         std::vector<Move> result;
 
@@ -111,13 +146,36 @@ struct Board {
                 const auto &piece = pieces[row][col];
                 if (piece == std::nullopt)
                     continue; // no piece here
-                if (piece->first != turn)
+                if (piece->color != turn)
                     continue; // can't move other color piece
 
-                for (auto &square :
-                     piece->second->getMovableSquares({row, col}, *this)) {
-                    result.push_back({{row, col}, square});
-                }
+                // for (auto &square :
+                //      piece->second->getMovableSquares({row, col}, *this)) {
+                //     result.push_back({{row, col}, square});
+                // }
+            }
+        }
+
+        return result;
+    }
+
+    // legal moves are moves where your king is not in check
+    std::vector<Move> legalMoves() const {
+        std::vector<Move> result;
+
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                const auto &piece = pieces[row][col];
+                if (piece == std::nullopt)
+                    continue; // no piece here
+                if (piece->color != turn)
+                    continue; // can't move other color piece
+
+                // TODO move logic
+                // for (auto &square :
+                //      piece->piece->getMovableSquares({row, col}, *this)) {
+                //     result.push_back({{row, col}, square});
+                // }
             }
         }
 
@@ -145,7 +203,15 @@ struct Board {
         Board copy = *this;
         copy.turn = other_color(copy.turn);
 
-        // for each possible move,
+        for (auto move : copy.possibleMoves()) {
+            auto &target = copy.pieces[move.to.row][move.to.col];
+            if (target && target->color == turn &&
+                target->piece.getChar() == 'K') {
+                // if the target is your king, then you are in check
+                return true;
+            }
+        }
+        return false;
     }
 
     // and check if the game is over
@@ -157,10 +223,10 @@ struct Board {
     void print_char(int row, int col) {
         const auto &colored_piece = pieces[row][col];
         if (colored_piece) {
-            std::cout << (colored_piece->first == Color::WHITE
+            std::cout << (colored_piece->color == Color::WHITE
                               ? TerminalColor::Modifier(TerminalColor::FG_WHITE)
                               : TerminalColor::Modifier(TerminalColor::FG_BLUE))
-                      << colored_piece->second->display();
+                      << colored_piece->piece.getChar();
         } else {
             std::cout << TerminalColor::Modifier(TerminalColor::FG_RED) << '-';
         }
@@ -193,8 +259,8 @@ struct Board {
                 if (piece == std::nullopt)
                     continue; // no piece here
 
-                double multiplier = piece->first == Color::WHITE ? 1 : -1;
-                sum += piece->second->getValue() * multiplier;
+                double multiplier = piece->color == Color::WHITE ? 1 : -1;
+                sum += multiplier; // TODO piece value
             }
         }
         return sum;
