@@ -34,9 +34,8 @@ enum Status { White_WIN = 0, Black_WIN = 1, IN_PROGRESS = 2 };
 struct Board {
     // a1 = 00, h8 = 77
     std::vector<std::vector<std::optional<ColoredPiece>>> pieces;
-    Color turn = Color::White;
 
-    Board(const std::string &s, const Color &turn) : turn(turn) {
+    Board(const std::string &s) {
         assert(s.size() == 64);
         pieces.assign(
             8, std::vector<std::optional<ColoredPiece>>(8, std::nullopt));
@@ -58,14 +57,12 @@ struct Board {
                             "--------"
                             "--------"
                             "PPPPPPPP"
-                            "RNBQKBNR"),
-                Color::White) {}
+                            "RNBQKBNR")) {}
 
     // move should be legal
     Board makeMove(const Move &move) const {
         // note - doesnt handle en passent and castling and promotion
         Board copy = *this;
-        copy.turn = turn.other();
         copy.pieces[move.to.row][move.to.col] =
             copy.pieces[move.from.row][move.from.col];
         copy.pieces[move.from.row][move.from.col] = std::nullopt;

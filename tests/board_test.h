@@ -12,6 +12,5 @@ TEST(BoardTests, StringConstructor) {
                 "--------"
                 "--------"
                 "PPPPPPPP"
-                "RNBQKBNR",
-                Color::White);
+                "RNBQKBNR");
 }

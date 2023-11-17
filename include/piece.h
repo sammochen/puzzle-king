@@ -17,6 +17,8 @@ struct Color {
 struct Piece {
     enum Value { King, Queen, Rook, Bishop, Knight, Pawn } value;
     constexpr Piece(Value v) : value(v) {}
+    constexpr operator Value() const { return value; }
+    explicit operator bool() const = delete;
 
     static std::optional<Piece> fromChar(char c) {
         const char lowerC = std::tolower(c);
