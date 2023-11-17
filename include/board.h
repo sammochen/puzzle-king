@@ -59,7 +59,20 @@ struct Board {
                             "PPPPPPPP"
                             "RNBQKBNR")) {}
 
-    // move should be legal
+    std::string toString() const {
+        std::string result(64, '?');
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                int row = 7 - i;
+                int col = j;
+
+                result[i * 8 + j] =
+                    pieces[row][col] ? pieces[row][col]->getChar() : '-';
+            }
+        }
+        return result;
+    }
+
     Board makeMove(const Move &move) const {
         // note - doesnt handle en passent and castling and promotion
         Board copy = *this;
@@ -75,7 +88,7 @@ struct Board {
             std::cout << (coloredPiece->color == Color::White
                               ? TerminalColor::Modifier(TerminalColor::FG_WHITE)
                               : TerminalColor::Modifier(TerminalColor::FG_BLUE))
-                      << coloredPiece->piece.getChar();
+                      << coloredPiece->getChar();
         } else {
             std::cout << TerminalColor::Modifier(TerminalColor::FG_RED) << '-';
         }
@@ -91,7 +104,7 @@ struct Board {
         return printChar(row, col);
     }
 
-    void print() {
+    void print() const {
         for (char i = '8'; i >= '1'; i--) {
             for (char j = 'a'; j <= 'h'; j++) {
                 printChar(std::string(1, j) + i);

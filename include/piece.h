@@ -42,8 +42,18 @@ struct Piece {
         switch (value) {
         case King:
             return 'K';
+        case Queen:
+            return 'Q';
+        case Rook:
+            return 'R';
+        case Bishop:
+            return 'B';
+        case Knight:
+            return 'N';
+        case Pawn:
+            return 'P';
         default:
-            return '?';
+            throw std::runtime_error("Invalid enum");
         }
     }
 };
@@ -60,6 +70,15 @@ struct ColoredPiece {
             const char lowerC = std::tolower(c);
             const Color color = (lowerC == c) ? Color::Black : Color::White;
             return {{color, *pieceOpt}};
+        }
+    }
+
+    char getChar() const {
+        const char c = piece.getChar();
+        if (color == Color::White) {
+            return std::toupper(c);
+        } else {
+            return std::tolower(c);
         }
     }
 };

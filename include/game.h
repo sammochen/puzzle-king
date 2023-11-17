@@ -11,14 +11,26 @@ struct Game {
     Game() : board(Board()), turn(Color::White) {}
     Game(const Board &board, const Color &turn) : board(board), turn(turn) {}
 
-    // you are in check if the opponent can
-    bool inCheck() const {
+    // legal moves are possible moves that dont leave you in check
+    std::vector<Move> legalMoves() const {
+        std::vector<Move> res;
+        for (auto move : possibleMoves()) {
+            Board newBoard = board.makeMove(move);
+            Game newGame(newBoard,
+                         turn); // hypothetical new game in the same turn
+            if (newGame.inCheck()) {
+                continue;
+            }
+            res.push_back(move);
+        }
+        return res;
+    }
 
-        Game copy = *this;
-        copy.turn = copy.turn.other();
+    bool inCheck() const {
+        Game copy(board, turn.other());
 
         for (auto move : copy.possibleMoves()) {
-            auto &target = copy.board.pieces[move.to.row][move.to.col];
+            const auto &target = copy.board.pieces[move.to.row][move.to.col];
             if (target && target->color == turn &&
                 target->piece == Piece::King) {
                 // if the target is your king, then you are in check
@@ -45,6 +57,11 @@ struct Game {
                         result.push_back({{row, col}, square});
                     }
                 }
+                if (piece.piece == Piece::Queen) {
+                    for (auto square : possibleQueenSquares(row, col)) {
+                        result.push_back({{row, col}, square});
+                    }
+                }
             }
         }
         return result;
@@ -56,6 +73,8 @@ struct Game {
                                                 const int di, const int dj,
                                                 const int maxDistance) const {
         const auto color = board.pieces[startRow][startCol]->color;
+        assert(color == turn);
+
         auto row = startRow + di;
         auto col = startCol + dj;
         int steps = 1;
@@ -75,6 +94,8 @@ struct Game {
             }
 
             steps++;
+            row += di;
+            col += dj;
         }
 
         return result;
@@ -136,9 +157,6 @@ struct Game {
                                              const int startCol) const {
         return possiblePerpendicularDiagonalSquares(startRow, startCol, 8);
     }
-
-    // legal moves are possible moves that dont leave you in check
-    std::vector<Move> legalMoves() const { return {}; }
 
     // and check if the game is over
     Status getStatus() const {
