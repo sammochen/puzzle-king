@@ -1,9 +1,9 @@
 #include "eval.h"
+#include "game.h"
 
 #include <gtest/gtest.h>
 
 TEST(EvalTests, Eval) {
-
     Board board("rnbqkbnr"
                 "pppppppp"
                 "--------"
@@ -14,7 +14,8 @@ TEST(EvalTests, Eval) {
                 "RNBQKBNR");
 
     Eval eval;
-    EXPECT_EQ(eval.evaluate(board), 0);
+    Game game(board, Color::White);
+    EXPECT_DOUBLE_EQ(eval.evaluate(game), 0);
 }
 
 TEST(EvalTests, EvalWhiteWinning) {
@@ -29,7 +30,8 @@ TEST(EvalTests, EvalWhiteWinning) {
                 "RNBQKBNR");
 
     Eval eval;
-    EXPECT_EQ(eval.evaluate(board), 9);
+    Game game(board, Color::White);
+    EXPECT_DOUBLE_EQ(eval.evaluate(game), 0.009);
 }
 
 TEST(EvalTests, EvalBlackWinning) {
@@ -44,5 +46,6 @@ TEST(EvalTests, EvalBlackWinning) {
                 "RNB-KBNR");
 
     Eval eval;
-    EXPECT_EQ(eval.evaluate(board), -9);
+    Game game(board, Color::White);
+    EXPECT_DOUBLE_EQ(eval.evaluate(game), -0.009);
 }

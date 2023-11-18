@@ -1,16 +1,24 @@
 #pragma once
-#include "board.h"
+#include "game.h"
 #include "piece.h"
 
 // Heuristic - how to valuate one position
 struct Eval {
-    // Return + when white is winning
-    double evaluate(const Board &board) {
+    // Return 1 when white is winning and 0 when black is winning
+    double evaluate(const Game &game) {
+        const auto status = game.getStatus();
+
+        if (status == GameStatus::WhiteWin) {
+            return 1.0;
+        }
+        if (status == GameStatus::BlackWin) {
+            return -1.0;
+        }
 
         double sum = 0;
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
-                const auto &piece = board.pieces[row][col];
+                const auto &piece = game.board.pieces[row][col];
                 if (piece == std::nullopt)
                     continue; // no piece here
 
@@ -18,13 +26,17 @@ struct Eval {
                 sum += multiplier * value(piece->piece);
             }
         }
-        return sum;
+
+        // this sum ranges from -1000 to 1000 - normalise to 0-1
+        sum = std::max(sum, -1000.0);
+        sum = std::min(sum, 1000.0);
+        return (sum + 1000) / 2000;
     }
 
-    double value(Piece piece) {
+    double value(Piece piece) const {
         switch (piece) {
         case Piece::King:
-            return 0;
+            return 1000;
         case Piece::Queen:
             return 9;
         case Piece::Rook:
@@ -36,6 +48,6 @@ struct Eval {
         case Piece::Pawn:
             return 1;
         }
-        return 0;
+        assert(false);
     }
 };

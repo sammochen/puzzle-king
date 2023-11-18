@@ -58,7 +58,10 @@ struct Game {
         return Game(nextBoard, turn.other());
     }
 
-    bool inCheckmate() const { return inCheck() && legalMoves().size() == 0; }
+    bool inCheckmate() const {
+        // TODO add inCheck() - right now stalemate is also checkmate
+        return legalMoves().size() == 0;
+    }
 
     // possible moves go through each piece and go through their moves
     std::vector<Move> possibleMoves() const {

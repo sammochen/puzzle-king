@@ -12,22 +12,28 @@
 
 struct Square {
     int row, col;
+    bool operator==(const Square &rhs) const {
+        return (row == rhs.row) && (col == rhs.col);
+    }
+    bool operator!=(const Square &rhs) const { return !operator==(rhs); }
 };
 
 std::ostream &operator<<(std::ostream &os, const Square &square) {
-    return os << "Square { row: " << square.row << ", col: " << square.col
-              << " }";
+    return os << "(" << square.row << ", " << square.col << ")";
 }
 
 // a move for a board is well defined by the to and from
 struct Move {
     Square from, to;
+    bool operator==(const Move &rhs) const {
+        return (from == rhs.from) && (to == rhs.to);
+    }
+    bool operator!=(const Move &rhs) const { return !operator==(rhs); }
 };
 
 std::ostream &operator<<(std::ostream &os, const Move &move) {
-    return os << "Move { to: " << move.to << ", from: " << move.from << " }";
+    return os << "(" << move.from << " -> " << move.to << ")";
 }
-
 
 // Captures the board state
 struct Board {

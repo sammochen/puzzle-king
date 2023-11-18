@@ -4,109 +4,120 @@
 #include "eval.h"
 #include "game.h"
 
-// An agent gets a board and decides what to do. I want to do a monte carlo tree
-// search What a monte carlo tree search
-
-struct MonteCarloNode {
-    Game game;
-    Eval eval;
-    std::vector<Move> moves;
-    std::vector<MonteCarloNode *> children;
-
-    // number of children
+struct ExpandedNodeStats {
     int numMoves;
-    bool expanded = false;
-    bool isTerminal = false;
-    double initialV = 0;
 
-    // probability of each move - the higher the more favourable the move
+    // the "prior"
+    // the prior could be zero and it will search all of them equally
     std::vector<double> P;
     // number of visits
     std::vector<double> N;
     // sum of the scores from the n visits
     std::vector<double> sumV;
 
-    MonteCarloNode(const Game &game) {
-
-        // When you initialise a node, you "predict" each move first
-
-        this->game = game;
-        moves = game.possibleMoves();
-        numMoves = moves.size();
-        std::cout << "making new node, numMoves: " << numMoves << std::endl;
+    ExpandedNodeStats(std::vector<double> P) : numMoves(P.size()), P(P) {
+        N.assign(numMoves, 0);
+        sumV.assign(numMoves, 0);
     }
 
-    double getConfidence(const int moveIndex) const {
+    void addObservation(const int moveIndex, double value) {
+        sumV[moveIndex] += value;
+        N[moveIndex]++;
+    }
+
+    int getMostVisitedMove() const {
+        return std::max_element(N.begin(), N.end()) - N.begin();
+    }
+
+    // Return the move index with highest confidence
+    int getMoveWithBestConfidence(bool isWhite) const {
+        double bestConfidence = -1e9;
+        int bestIndex = -1;
+
+        for (int i = 0; i < numMoves; i++) {
+            const auto curConfidence = getConfidence(i, isWhite);
+            if (curConfidence > bestConfidence) {
+                bestConfidence = curConfidence;
+                bestIndex = i;
+            }
+        }
+        return bestIndex;
+    }
+
+    // Returns the "confidence" of choosing a move.
+    // Exploration/exploitation - tries promising moves but will give others a
+    // chance
+    double getConfidence(const int moveIndex, const bool isWhite) const {
         int totalN = std::accumulate(N.begin(), N.end(), 0);
         int n = N[moveIndex];
 
-        double p = P[moveIndex];
-        double q = sumV[moveIndex] == 0 ? 0 : sumV[moveIndex] / n;
+        const double p = P[moveIndex]; // prior
+        const double averageV = n == 0 ? 0 : sumV[moveIndex] / n;
 
-        double result = q + 1.41 * p * (std::sqrt(totalN)) / (1 + n);
+        // the bigger the n, the less important p is
+        // https://web.stanford.edu/~surag/posts/alphazero.html
+        // TODO the 2 here is a hyperparameter
+        const double result =
+            averageV + 1.41 * p * (std::sqrt(totalN)) / (1 + n);
 
         assert(isfinite(result));
+        if (!isWhite)
+            return -result;
         return result;
+    }
+};
+
+// One node is for one game state
+struct Node {
+    Game game;
+    Eval eval;
+
+    int depth;
+
+    bool isTerminal = false;
+    double initialV = 0;
+
+    int numMoves;
+    std::vector<Move> moves;
+    std::vector<std::optional<Node>> children;
+
+    std::optional<ExpandedNodeStats> expandedNodeStats = std::nullopt;
+
+    Node(const Game &game, int depth = 0) : game(game), depth(depth) {
+        // When you initialise a node, you don't unpack it yet
+        moves = game.legalMoves();
+        numMoves = moves.size();
+        children.assign(numMoves, std::nullopt);
+
+        initialV = eval.evaluate(game);
+        isTerminal = game.getStatus() != GameStatus::InProgress;
     }
 
     double expandNode() {
-        assert(!expanded);
-        expanded = true;
+        assert(!expandedNodeStats);
 
-        // terminal conditions
-        const auto status = game.getStatus();
-        if (status != GameStatus::InProgress) {
-            isTerminal = true;
+        std::vector<double> P(numMoves);
 
-            if ((status == GameStatus::WhiteWin) ==
-                (game.turn == Color::White)) {
-                initialV = 1000;
-            } else {
-                initialV = -1000;
-            }
+        if (isTerminal) {
+            expandedNodeStats = ExpandedNodeStats(P);
             return initialV;
         }
 
-        initialV = eval.evaluate(game.board);
-        if (game.turn == Color::Black) {
-            initialV *= -1;
-        }
-
         // when you expand, you use a heuristic
-        P.assign(numMoves, 0);
-        N.assign(numMoves, 0);
-        sumV.assign(numMoves, 0);
-        children.assign(numMoves, nullptr);
-
         for (int i = 0; i < numMoves; i++) {
             Board nextBoard = game.board.makeMove(moves[i]);
-            const auto nextValue = -eval.evaluate(nextBoard);
-            if (game.turn == Color::Black) {
-                initialV *= -1;
-            }
-
+            Game nextGame(nextBoard, game.turn.other());
+            const auto nextValue = eval.evaluate(nextGame);
             P[i] = nextValue;
         }
 
-        double maxP = *max_element(P.begin(), P.end());
-        double minP = *min_element(P.begin(), P.end());
-        double pRange = maxP - minP;
-
-        if (pRange == 0) {
-            P.assign(P.size(), 0);
-        } else {
-            for (double &x : P) {
-                x = (x - minP) / pRange;
-            }
-        }
-
+        expandedNodeStats = ExpandedNodeStats(P);
         return initialV;
     }
 
-    // Return the valuation of the board. For now, we'll use point count, and
-    // win/loss is +- 1000 points
+    // Search once, and return the valuation of the board.
     double searchOnce() {
-        if (!expanded) {
+        if (!expandedNodeStats) {
             return expandNode();
         }
 
@@ -114,64 +125,44 @@ struct MonteCarloNode {
             return initialV;
         }
 
-        //  choose the move with the highest confidence and explore it
-        double bestConfidence = -1e9;
-        int bestIndex = -1;
-        for (int i = 0; i < numMoves; i++) {
-            const auto curConfidence = getConfidence(i);
-            if (curConfidence >= bestConfidence) {
-                bestConfidence = curConfidence;
-                bestIndex = i;
-            }
-        }
-        std::cout << bestConfidence << ' ' << bestIndex << std::endl;
+        const int bestIndex = expandedNodeStats->getMoveWithBestConfidence(
+            game.turn == Color::White);
+        assert(bestIndex >= 0 && bestIndex < numMoves);
 
-        // if game finishes
-
-        if (children[bestIndex] == nullptr) {
+        if (!children[bestIndex]) {
             children[bestIndex] =
-                new MonteCarloNode(game.makeMove(moves[bestIndex]));
-
+                Node(game.makeMove(moves[bestIndex]), depth + 1);
             return children[bestIndex]->initialV;
         } else {
-            // Note flipped because change players
-            double childResult = -children[bestIndex]->searchOnce();
+            // No flip - node evaluates from white's perspective
+            const double childResult = children[bestIndex]->searchOnce();
 
-            sumV[bestIndex] += childResult;
-            N[bestIndex] += 1;
+            expandedNodeStats->addObservation(bestIndex, childResult);
 
             return childResult;
         }
     }
 
     Move bestMove() const {
-        int biggest = -1;
-        std::vector<int> indices;
-        for (int i = 0; i < N.size(); i++) {
-            if (N[i] > biggest) {
-                biggest = N[i];
-                indices = {i};
-
-            } else if (N[i] == biggest) {
-                indices.push_back(i);
-            }
+        for (int i = 0; i < numMoves; i++) {
+            std::cout << moves[i] << ' ' << children[i]->initialV << ' '
+                      << expandedNodeStats->getConfidence(i, true) << ' '
+                      << expandedNodeStats->N[i] << std::endl;
         }
-
-        std::cout << "There are " << indices.size() << " best moves"
-                  << std::endl;
-        return moves[indices[0]];
+        // the best move is the most traversed action
+        return moves[expandedNodeStats->getMostVisitedMove()];
     }
 };
 
 struct Agent {
     // An agent makes a MCTS node, explores it, and returns the best move
     Move chooseBestMove(const Game &game, int numSearches) const {
-        auto *root = new MonteCarloNode(game);
+        auto root = Node(game, 0);
         for (int i = 0; i < numSearches; i++) {
-            std::cout << "searching " << i << std::endl;
-            root->searchOnce();
+            if (i % 100 == 0)
+                std::cout << i << ' ' << std::endl;
+            root.searchOnce();
         }
-
-        return root->bestMove();
+        return root.bestMove();
     }
 };
