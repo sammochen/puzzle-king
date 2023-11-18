@@ -69,6 +69,38 @@ TEST(GameTests, InCheck) {
     }
 }
 
+TEST(GameTests, Checkmate) {
+    {
+        Board board("----k---"
+                    "---RQ---"
+                    "--------"
+                    "--------"
+                    "--------"
+                    "--------"
+                    "--------"
+                    "----K---");
+
+        Game gameBlack(board, Color::Black);
+        EXPECT_EQ(gameBlack.inCheck(), true);
+        EXPECT_EQ(gameBlack.inCheckmate(), true);
+    }
+
+    {
+        Board board("----k---"
+                    "----Q---"
+                    "--------"
+                    "--------"
+                    "--------"
+                    "--------"
+                    "--------"
+                    "----K---");
+
+        Game gameBlack(board, Color::Black);
+        EXPECT_EQ(gameBlack.inCheck(), true);
+        EXPECT_EQ(gameBlack.inCheckmate(), false);
+    }
+}
+
 TEST(GameTests, KingNumMoves) {
     {
         Board board("----k---"

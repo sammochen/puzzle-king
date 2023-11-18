@@ -40,6 +40,8 @@ struct Game {
         return false;
     }
 
+    bool inCheckmate() const { return legalMoves().size() == 0; }
+
     // possible moves go through each piece and go through their moves
     std::vector<Move> possibleMoves() const {
         std::vector<Move> result;
