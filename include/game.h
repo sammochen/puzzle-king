@@ -3,6 +3,8 @@
 #include "board.h"
 #include "piece.h"
 
+enum class GameStatus { WhiteWin = 0, BlackWin = 1, InProgress = 2 };
+
 // The entire game. outside should only interact with a game
 struct Game {
     Board board;
@@ -40,7 +42,23 @@ struct Game {
         return false;
     }
 
-    bool inCheckmate() const { return legalMoves().size() == 0; }
+    GameStatus getStatus() const {
+        if (inCheckmate()) {
+            if (turn == Color::White) {
+                return GameStatus::BlackWin;
+            } else {
+                return GameStatus::WhiteWin;
+            }
+        }
+        return GameStatus::InProgress;
+    }
+
+    Game makeMove(const Move &move) const {
+        Board nextBoard = board.makeMove(move);
+        return Game(nextBoard, turn.other());
+    }
+
+    bool inCheckmate() const { return inCheck() && legalMoves().size() == 0; }
 
     // possible moves go through each piece and go through their moves
     std::vector<Move> possibleMoves() const {
@@ -175,11 +193,5 @@ struct Game {
     std::vector<Square> possibleBishopSquares(const int startRow,
                                               const int startCol) const {
         return possibleDiagonalSquares(startRow, startCol, 8);
-    }
-
-    // and check if the game is over
-    Status getStatus() const {
-        // if the king is in check, and there are no legal moves, game over
-        return Status::IN_PROGRESS;
     }
 };

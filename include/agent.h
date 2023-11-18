@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cmath"
+#include "eval.h"
 #include "game.h"
 
 // An agent gets a board and decides what to do. I want to do a monte carlo tree
@@ -8,6 +9,7 @@
 
 struct MonteCarloNode {
     Game game;
+    Eval eval;
     std::vector<Move> moves;
     std::vector<MonteCarloNode *> children;
 
@@ -52,29 +54,23 @@ struct MonteCarloNode {
         expanded = true;
 
         // terminal conditions
-        if (game.getStatus() == Status::WHITE_WIN) {
+        const auto status = game.getStatus();
+        if (status != GameStatus::InProgress) {
             isTerminal = true;
-            if (game.turn() == Color::White) {
+
+            if ((status == GameStatus::WhiteWin) ==
+                (game.turn == Color::White)) {
                 initialV = 1000;
             } else {
                 initialV = -1000;
             }
-            return initialV;
-
-        } else if (game.getStatus() == Status::BLACK_WIN) {
-            isTerminal = true;
-            if (game.turn() == Color::White) {
-                initialV = -1000;
-            } else {
-                initialV = 1000;
-            }
-
             return initialV;
         }
 
-        
-
-        initialV = board.heuristic();
+        initialV = eval.evaluate(game.board);
+        if (game.turn == Color::Black) {
+            initialV *= -1;
+        }
 
         // when you expand, you use a heuristic
         P.assign(numMoves, 0);
@@ -83,8 +79,13 @@ struct MonteCarloNode {
         children.assign(numMoves, nullptr);
 
         for (int i = 0; i < numMoves; i++) {
-            Board nextBoard = board.makeMove(moves[i]);
-            P[i] = -nextBoard.heuristic(); // heuristic
+            Board nextBoard = game.board.makeMove(moves[i]);
+            const auto nextValue = -eval.evaluate(nextBoard);
+            if (game.turn == Color::Black) {
+                initialV *= -1;
+            }
+
+            P[i] = nextValue;
         }
 
         double maxP = *max_element(P.begin(), P.end());

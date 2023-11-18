@@ -28,7 +28,6 @@ std::ostream &operator<<(std::ostream &os, const Move &move) {
     return os << "Move { to: " << move.to << ", from: " << move.from << " }";
 }
 
-enum Status { White_WIN = 0, Black_WIN = 1, IN_PROGRESS = 2 };
 
 // Captures the board state
 struct Board {
