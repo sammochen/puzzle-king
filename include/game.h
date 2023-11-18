@@ -58,9 +58,16 @@ struct Game {
                     for (auto square : possibleKingSquares(row, col)) {
                         result.push_back({{row, col}, square});
                     }
-                }
-                if (piece.piece == Piece::Queen) {
+                } else if (piece.piece == Piece::Queen) {
                     for (auto square : possibleQueenSquares(row, col)) {
+                        result.push_back({{row, col}, square});
+                    }
+                } else if (piece.piece == Piece::Rook) {
+                    for (auto square : possibleRookSquares(row, col)) {
+                        result.push_back({{row, col}, square});
+                    }
+                } else if (piece.piece == Piece::Bishop) {
+                    for (auto square : possibleBishopSquares(row, col)) {
                         result.push_back({{row, col}, square});
                     }
                 }
@@ -158,6 +165,16 @@ struct Game {
     std::vector<Square> possibleQueenSquares(const int startRow,
                                              const int startCol) const {
         return possiblePerpendicularDiagonalSquares(startRow, startCol, 8);
+    }
+
+    std::vector<Square> possibleRookSquares(const int startRow,
+                                            const int startCol) const {
+        return possiblePerpendicularSquares(startRow, startCol, 8);
+    }
+
+    std::vector<Square> possibleBishopSquares(const int startRow,
+                                              const int startCol) const {
+        return possibleDiagonalSquares(startRow, startCol, 8);
     }
 
     // and check if the game is over

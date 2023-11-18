@@ -2,6 +2,7 @@
 
 #include "cmath"
 #include "game.h"
+
 // An agent gets a board and decides what to do. I want to do a monte carlo tree
 // search What a monte carlo tree search
 
