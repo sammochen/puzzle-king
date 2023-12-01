@@ -27,16 +27,18 @@ struct Eval {
             }
         }
 
-        // this sum ranges from -1000 to 1000 - normalise to 0-1
-        sum = std::max(sum, -1000.0);
-        sum = std::min(sum, 1000.0);
-        return (sum + 1000) / 2000;
+        // sigmoid normalise the score
+        double result = sigmoid(sum);
+        assert(result >= 0 && result <= 1);
+        return result;
     }
+
+    double sigmoid(double x) const { return 1.0 / (1.0 + std::exp(-x / 4)); }
 
     double value(Piece piece) const {
         switch (piece) {
         case Piece::King:
-            return 1000;
+            return 0;
         case Piece::Queen:
             return 9;
         case Piece::Rook:

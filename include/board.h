@@ -88,6 +88,12 @@ struct Board {
     }
 
     void printChar(int row, int col) const {
+        if (row < 0 || row >= pieces.size() || col < 0 ||
+            col >= pieces[0].size()) {
+            std::cout << '?'; // shouldnt happen
+            return;
+        }
+
         const auto &coloredPiece = pieces[row][col];
         if (coloredPiece) {
             std::cout << (coloredPiece->color == Color::White
@@ -106,13 +112,17 @@ struct Board {
         assert(pos.size() == 2);
         const int row = pos[1] - '1';
         const int col = pos[0] - 'a';
+
         return printChar(row, col);
     }
 
     void print() const {
         for (char i = '8'; i >= '1'; i--) {
             for (char j = 'a'; j <= 'h'; j++) {
-                printChar(std::string(1, j) + i);
+                std::string s = std::string(1, j);
+                s.push_back(i);
+
+                printChar(s);
             }
             std::cout << std::endl;
         }

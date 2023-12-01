@@ -15,7 +15,7 @@ TEST(AgentTests, MateInOne) {
     Game game(board, Color::White);
 
     Agent agent;
-    const Move move = agent.chooseBestMove(game, 1000);
+    const Move move = agent.chooseBestMove(game, 10000);
     const Move expectedMove{Square{1, 3}, Square{7, 3}};
     EXPECT_EQ(move, expectedMove);
 }
@@ -27,13 +27,71 @@ TEST(AgentTests, MateInTwo) {
                 "--------"
                 "--------"
                 "----R---"
-                "----Q---"
+                "----R---"
                 "--------"
                 "----K---");
     Game game(board, Color::White);
 
     Agent agent;
-    const Move move = agent.chooseBestMove(game, 1000);
+    const Move move = agent.chooseBestMove(game, 10000);
     const Move expectedMove{Square{3, 4}, Square{7, 4}};
     EXPECT_EQ(move, expectedMove);
+}
+
+TEST(AgentTests, TakeAFreePiece) {
+
+    Board board("------k-"
+                "--------"
+                "--------"
+                "--------"
+                "-r--R---"
+                "--------"
+                "--------"
+                "----K---");
+    Game game(board, Color::White);
+
+    Agent agent;
+    const Move move = agent.chooseBestMove(game, 10000);
+    const Move expectedMove{Square{3, 4}, Square{3, 1}};
+    EXPECT_EQ(move, expectedMove);
+}
+
+
+TEST(AgentTests, Fork) {
+    Board board("--------"
+                "--------"
+                "--------"
+                "--------"
+                "b--R--k-"
+                "--------"
+                "--------"
+                "----K---");
+    Game game(board, Color::Black);
+
+    Agent agent;
+    const Move move = agent.chooseBestMove(game, 10000);
+    const Move expectedMove{Square{1, 3}, Square{3, 3}};
+    EXPECT_EQ(move, expectedMove);
+
+    game = game.makeMove(move);
+}
+
+
+TEST(AgentTests, Fork) {
+    Board board("--------"
+                "--------"
+                "--------"
+                "--------"
+                "b-----k-"
+                "--------"
+                "---R----"
+                "----K---");
+    Game game(board, Color::White);
+
+    Agent agent;
+    const Move move = agent.chooseBestMove(game, 10000);
+    const Move expectedMove{Square{1, 3}, Square{3, 3}};
+    EXPECT_EQ(move, expectedMove);
+
+    game = game.makeMove(move);
 }

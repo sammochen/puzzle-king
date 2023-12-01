@@ -44,6 +44,11 @@ struct ExpandedNodeStats {
         return bestIndex;
     }
 
+    double getAverageV(const int moveIndex) const {
+        const int n = N[moveIndex];
+        return n == 0 ? 0 : sumV[moveIndex] / n;
+    }
+
     // Returns the "confidence" of choosing a move.
     // Exploration/exploitation - tries promising moves but will give others a
     // chance
@@ -51,8 +56,13 @@ struct ExpandedNodeStats {
         int totalN = std::accumulate(N.begin(), N.end(), 0);
         int n = N[moveIndex];
 
-        const double p = P[moveIndex]; // prior
-        const double averageV = n == 0 ? 0 : sumV[moveIndex] / n;
+        double p = P[moveIndex]; // prior
+        double averageV = n == 0 ? 0 : sumV[moveIndex] / n;
+
+        if (!isWhite) {
+            p = 1 - p;
+            averageV = 1 - averageV;
+        }
 
         // the bigger the n, the less important p is
         // https://web.stanford.edu/~surag/posts/alphazero.html
@@ -61,8 +71,6 @@ struct ExpandedNodeStats {
             averageV + 1.41 * p * (std::sqrt(totalN)) / (1 + n);
 
         assert(isfinite(result));
-        if (!isWhite)
-            return -result;
         return result;
     }
 };
@@ -136,18 +144,23 @@ struct Node {
         } else {
             // No flip - node evaluates from white's perspective
             const double childResult = children[bestIndex]->searchOnce();
-
             expandedNodeStats->addObservation(bestIndex, childResult);
-
             return childResult;
         }
     }
 
     Move bestMove() const {
         for (int i = 0; i < numMoves; i++) {
-            std::cout << moves[i] << ' ' << children[i]->initialV << ' '
-                      << expandedNodeStats->getConfidence(i, true) << ' '
-                      << expandedNodeStats->N[i] << std::endl;
+
+            std::cout << moves[i] << ' ' << expandedNodeStats->P[i] << ' '
+                      << expandedNodeStats->getAverageV(i) << ' '
+                      << expandedNodeStats->getConfidence(i, game.turn ==
+                                                                 Color::White)
+                      << ' ' << expandedNodeStats->N[i] << std::endl;
+
+            if (children[i]) {
+                children[i]->game.board.print();
+            }
         }
         // the best move is the most traversed action
         return moves[expandedNodeStats->getMostVisitedMove()];
@@ -159,10 +172,11 @@ struct Agent {
     Move chooseBestMove(const Game &game, int numSearches) const {
         auto root = Node(game, 0);
         for (int i = 0; i < numSearches; i++) {
-            if (i % 100 == 0)
-                std::cout << i << ' ' << std::endl;
+            if (i % 1000 == 0)
+                std::cout << i << ' ' << std::flush;
             root.searchOnce();
         }
+        std::cout << std::endl;
         return root.bestMove();
     }
 };
