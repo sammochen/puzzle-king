@@ -12,6 +12,12 @@ cd build
 cmake .. && cmake --build .
 ```
 
+To run a specific test case
+
+```sh
+./all_tests --gtest_filter="*Fork*"
+```
+
 ## TODOs
 
 - [ ] Implement all the rules of chess

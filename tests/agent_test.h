@@ -56,29 +56,8 @@ TEST(AgentTests, TakeAFreePiece) {
     EXPECT_EQ(move, expectedMove);
 }
 
-
 TEST(AgentTests, Fork) {
-    Board board("--------"
-                "--------"
-                "--------"
-                "--------"
-                "b--R--k-"
-                "--------"
-                "--------"
-                "----K---");
-    Game game(board, Color::Black);
-
-    Agent agent;
-    const Move move = agent.chooseBestMove(game, 10000);
-    const Move expectedMove{Square{1, 3}, Square{3, 3}};
-    EXPECT_EQ(move, expectedMove);
-
-    game = game.makeMove(move);
-}
-
-
-TEST(AgentTests, Fork) {
-    Board board("--------"
+    Board board("-r------"
                 "--------"
                 "--------"
                 "--------"

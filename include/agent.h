@@ -8,7 +8,7 @@ struct ExpandedNodeStats {
     int numMoves;
 
     // the "prior"
-    // the prior could be zero and it will search all of them equally
+    // the initial policy. should be normalised i think
     std::vector<double> P;
     // number of visits
     std::vector<double> N;
@@ -26,7 +26,9 @@ struct ExpandedNodeStats {
     }
 
     int getMostVisitedMove() const {
-        return std::max_element(N.begin(), N.end()) - N.begin();
+        int move = std::max_element(N.begin(), N.end()) - N.begin();
+        assert(move != N.size());
+        return move;
     }
 
     // Return the move index with highest confidence
@@ -41,6 +43,7 @@ struct ExpandedNodeStats {
                 bestIndex = i;
             }
         }
+        assert(bestIndex != -1);
         return bestIndex;
     }
 
@@ -53,15 +56,20 @@ struct ExpandedNodeStats {
     // Exploration/exploitation - tries promising moves but will give others a
     // chance
     double getConfidence(const int moveIndex, const bool isWhite) const {
-        int totalN = std::accumulate(N.begin(), N.end(), 0);
-        int n = N[moveIndex];
+        const int totalN = std::accumulate(N.begin(), N.end(), 0);
+        const int n = N[moveIndex];
+        if (n == 0) {
+            return 1000; // always prefer unexplored nodes
+        }
 
-        double p = P[moveIndex]; // prior
-        double averageV = n == 0 ? 0 : sumV[moveIndex] / n;
-
-        if (!isWhite) {
-            p = 1 - p;
-            averageV = 1 - averageV;
+        double p, averageV;
+        if (isWhite) {
+            p = P[moveIndex];
+            averageV = sumV[moveIndex] / n;
+        } else {
+            // p is a probability, averageV is [-1, 1]
+            p = 1 - P[moveIndex];
+            averageV = -sumV[moveIndex] / n;
         }
 
         // the bigger the n, the less important p is
@@ -107,19 +115,20 @@ struct Node {
         std::vector<double> P(numMoves);
 
         if (isTerminal) {
-            expandedNodeStats = ExpandedNodeStats(P);
+            auto normalisedP = Eval::normalise(P);
+            expandedNodeStats =
+                ExpandedNodeStats(normalisedP); // I suspect this isnt necessary
             return initialV;
         }
 
-        // when you expand, you use a heuristic
         for (int i = 0; i < numMoves; i++) {
             Board nextBoard = game.board.makeMove(moves[i]);
             Game nextGame(nextBoard, game.turn.other());
-            const auto nextValue = eval.evaluate(nextGame);
-            P[i] = nextValue;
+            P[i] = eval.evaluate(nextGame); // this evaluation is -1 to 1
         }
 
-        expandedNodeStats = ExpandedNodeStats(P);
+        auto normalisedP = Eval::normalise(P);
+        expandedNodeStats = ExpandedNodeStats(normalisedP);
         return initialV;
     }
 
@@ -141,29 +150,34 @@ struct Node {
             children[bestIndex] =
                 Node(game.makeMove(moves[bestIndex]), depth + 1);
             return children[bestIndex]->initialV;
-        } else {
-            // No flip - node evaluates from white's perspective
-            const double childResult = children[bestIndex]->searchOnce();
-            expandedNodeStats->addObservation(bestIndex, childResult);
-            return childResult;
         }
+
+        // No flip - node evaluates from white's perspective
+        const double childResult = children[bestIndex]->searchOnce();
+        expandedNodeStats->addObservation(bestIndex, childResult);
+        return childResult;
     }
 
     Move bestMove() const {
-        for (int i = 0; i < numMoves; i++) {
+        // the best move is the most traversed action
+        return moves[expandedNodeStats->getMostVisitedMove()];
+    }
 
+    void print_agent_state() const {
+        for (int i = 0; i < numMoves; i++) {
             std::cout << moves[i] << ' ' << expandedNodeStats->P[i] << ' '
                       << expandedNodeStats->getAverageV(i) << ' '
                       << expandedNodeStats->getConfidence(i, game.turn ==
                                                                  Color::White)
                       << ' ' << expandedNodeStats->N[i] << std::endl;
 
-            if (children[i]) {
-                children[i]->game.board.print();
-            }
+            // if (children[i]) {
+            //     children[i]->game.board.print();
+            // }
+
+            std::cout << std::endl;
+            std::cout << std::endl;
         }
-        // the best move is the most traversed action
-        return moves[expandedNodeStats->getMostVisitedMove()];
     }
 };
 
@@ -176,7 +190,9 @@ struct Agent {
                 std::cout << i << ' ' << std::flush;
             root.searchOnce();
         }
+
         std::cout << std::endl;
+        root.print_agent_state();
         return root.bestMove();
     }
 };
