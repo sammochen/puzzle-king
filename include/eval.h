@@ -63,6 +63,11 @@ struct Eval {
                 hi = p;
             }
         }
+
+        // I want lo to be a little bit lower...
+        // P[i]  is in [-1, 1] right now
+        lo -= 1.0; // ??? this will make all the values seem ok
+
         if (hi == lo) {
             return std::vector<double>(n, 1.0 / n);
         }

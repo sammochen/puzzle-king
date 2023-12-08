@@ -3,7 +3,6 @@
 #include <gtest/gtest.h>
 
 TEST(AgentTests, MateInOne) {
-
     Board board("------k-"
                 "r----ppp"
                 "--------"
@@ -21,14 +20,13 @@ TEST(AgentTests, MateInOne) {
 }
 
 TEST(AgentTests, MateInTwo) {
-
     Board board("r-----k-"
                 "-----ppp"
                 "--------"
                 "--------"
-                "----R---"
-                "----R---"
+                "--R-----"
                 "--------"
+                "--R-----"
                 "----K---");
     Game game(board, Color::White);
 
@@ -39,7 +37,6 @@ TEST(AgentTests, MateInTwo) {
 }
 
 TEST(AgentTests, TakeAFreePiece) {
-
     Board board("------k-"
                 "--------"
                 "--------"

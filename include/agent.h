@@ -74,9 +74,9 @@ struct ExpandedNodeStats {
 
         // the bigger the n, the less important p is
         // https://web.stanford.edu/~surag/posts/alphazero.html
-        // TODO the 2 here is a hyperparameter
+        // TODO the sqrt(2) here is a hyperparameter
         const double result =
-            averageV + 1.41 * p * (std::sqrt(totalN)) / (1 + n);
+            averageV + 4.0 * p * (std::sqrt(totalN)) / (1 + n);
 
         assert(isfinite(result));
         return result;
@@ -174,9 +174,8 @@ struct Node {
             // if (children[i]) {
             //     children[i]->game.board.print();
             // }
-
-            std::cout << std::endl;
-            std::cout << std::endl;
+            // std::cout << std::endl;
+            // std::cout << std::endl;
         }
     }
 };
