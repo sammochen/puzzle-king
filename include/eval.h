@@ -39,7 +39,7 @@ struct Eval {
     static double flip(double value) { return -value; }
 
     double sigmoid(double x) const {
-        const double res = 1.0 / (1.0 + std::exp(-x / 4));
+        const double res = 1.0 / (1.0 + std::exp(-x / 8));
         // if (res > 0.9)
         //     return 0.9;
         // if (res < 0.1)
@@ -66,7 +66,7 @@ struct Eval {
 
         // I want lo to be a little bit lower...
         // P[i]  is in [-1, 1] right now
-        lo -= 1.0; // ??? this will make all the values seem ok
+        lo -= 0.5; // ??? this will make all the values seem ok
 
         if (hi == lo) {
             return std::vector<double>(n, 1.0 / n);

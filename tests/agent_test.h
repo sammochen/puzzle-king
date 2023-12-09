@@ -2,7 +2,19 @@
 
 #include <gtest/gtest.h>
 
-TEST(AgentTests, MateInOne) {
+std::vector<Move> simulateMoves(Game game, int num_moves, int num_iterations) {
+    Agent agent;
+    game.board.print();
+    std::vector<Move> moves;
+    for (int i = 0; i < num_moves; i++) {
+        moves.emplace_back(agent.chooseBestMove(game, num_iterations));
+        game = game.makeMove(moves.back());
+        game.board.print();
+    }
+    return moves;
+}
+
+TEST(AgentTests, MateInOneWhite) {
     Board board("------k-"
                 "r----ppp"
                 "--------"
@@ -13,30 +25,65 @@ TEST(AgentTests, MateInOne) {
                 "------K-");
     Game game(board, Color::White);
 
-    Agent agent;
-    const Move move = agent.chooseBestMove(game, 10000);
+    auto moves = simulateMoves(game, 1, 1000);
+
     const Move expectedMove{Square{1, 3}, Square{7, 3}};
-    EXPECT_EQ(move, expectedMove);
+    EXPECT_EQ(moves[0], expectedMove);
 }
 
-TEST(AgentTests, MateInTwo) {
-    Board board("r-----k-"
-                "-----ppp"
+TEST(AgentTests, MateInOneBlack) {
+    Board board("------k-"
+                "---r-ppp"
                 "--------"
                 "--------"
-                "--R-----"
+                "--------"
+                "--------"
+                "R----PPP"
+                "------K-");
+    Game game(board, Color::Black);
+
+    auto moves = simulateMoves(game, 1, 1000);
+    const Move expectedMove{Square{6, 3}, Square{0, 3}};
+    EXPECT_EQ(moves[0], expectedMove);
+}
+
+TEST(AgentTests, MateInTwoNoSack) {
+    Board board("--------"
+                "------k-"
+                "R-------"
+                "--------"
+                "--------"
                 "--------"
                 "--R-----"
                 "----K---");
     Game game(board, Color::White);
 
     Agent agent;
-    const Move move = agent.chooseBestMove(game, 10000);
-    const Move expectedMove{Square{3, 4}, Square{7, 4}};
-    EXPECT_EQ(move, expectedMove);
+    auto moves = simulateMoves(game, 3, 100000);
+    const Move expectedMove1{Square{1, 2}, Square{6, 2}};
+    EXPECT_EQ(moves[0], expectedMove1);
+    const Move expectedMove2{Square{5, 0}, Square{7, 0}};
+    EXPECT_EQ(moves[2], expectedMove2);
 }
 
-TEST(AgentTests, TakeAFreePiece) {
+TEST(AgentTests, DodgeMate) {
+    Board board("--------"
+                "R-----k-"
+                "--------"
+                "--------"
+                "--------"
+                "--------"
+                "--R-----"
+                "----K---");
+    Game game(board, Color::Black);
+
+    Agent agent;
+    auto moves = simulateMoves(game, 1, 10000);
+    const Move expectedMove1{Square{1, 2}, Square{6, 2}};
+    EXPECT_EQ(moves[0], expectedMove1);
+}
+
+TEST(AgentTests, TakeAFreePieceWhite) {
     Board board("------k-"
                 "--------"
                 "--------"
@@ -48,9 +95,26 @@ TEST(AgentTests, TakeAFreePiece) {
     Game game(board, Color::White);
 
     Agent agent;
-    const Move move = agent.chooseBestMove(game, 10000);
-    const Move expectedMove{Square{3, 4}, Square{3, 1}};
-    EXPECT_EQ(move, expectedMove);
+    auto moves = simulateMoves(game, 1, 1000);
+    const Move expectedMove1{Square{3, 4}, Square{3, 1}};
+    EXPECT_EQ(moves[0], expectedMove1);
+}
+
+TEST(AgentTests, TakeAFreePieceBlack) {
+    Board board("------k-"
+                "--------"
+                "--------"
+                "--------"
+                "-r--R---"
+                "--------"
+                "--------"
+                "----K---");
+    Game game(board, Color::Black);
+
+    Agent agent;
+    auto moves = simulateMoves(game, 1, 1000);
+    const Move expectedMove1{Square{3, 1}, Square{3, 4}};
+    EXPECT_EQ(moves[0], expectedMove1);
 }
 
 TEST(AgentTests, Fork) {

@@ -165,17 +165,13 @@ struct Node {
 
     void print_agent_state() const {
         for (int i = 0; i < numMoves; i++) {
-            std::cout << moves[i] << ' ' << expandedNodeStats->P[i] << ' '
-                      << expandedNodeStats->getAverageV(i) << ' '
+
+            std::cout << moves[i] << " P[i]=" << expandedNodeStats->P[i]
+                      << " Q[i]=" << expandedNodeStats->getAverageV(i)
+                      << " initialV[i]=" << children[i]->initialV << " C[i]="
                       << expandedNodeStats->getConfidence(i, game.turn ==
                                                                  Color::White)
-                      << ' ' << expandedNodeStats->N[i] << std::endl;
-
-            // if (children[i]) {
-            //     children[i]->game.board.print();
-            // }
-            // std::cout << std::endl;
-            // std::cout << std::endl;
+                      << " N[i]=" << expandedNodeStats->N[i] << std::endl;
         }
     }
 };
