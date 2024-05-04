@@ -25,7 +25,7 @@ TEST(AgentTests, MateInOneWhite) {
                 "------K-");
     Game game(board, Color::White);
 
-    auto moves = simulateMoves(game, 1, 1000);
+    auto moves = simulateMoves(game, 1, 10000);
 
     const Move expectedMove{Square{1, 3}, Square{7, 3}};
     EXPECT_EQ(moves[0], expectedMove);
@@ -42,7 +42,7 @@ TEST(AgentTests, MateInOneBlack) {
                 "------K-");
     Game game(board, Color::Black);
 
-    auto moves = simulateMoves(game, 1, 1000);
+    auto moves = simulateMoves(game, 1, 10000);
     const Move expectedMove{Square{6, 3}, Square{0, 3}};
     EXPECT_EQ(moves[0], expectedMove);
 }
@@ -59,7 +59,7 @@ TEST(AgentTests, MateInTwoNoSack) {
     Game game(board, Color::White);
 
     Agent agent;
-    auto moves = simulateMoves(game, 3, 100000);
+    auto moves = simulateMoves(game, 3, 10000);
     const Move expectedMove1{Square{1, 2}, Square{6, 2}};
     EXPECT_EQ(moves[0], expectedMove1);
     const Move expectedMove2{Square{5, 0}, Square{7, 0}};
@@ -79,7 +79,7 @@ TEST(AgentTests, DodgeMate) {
 
     Agent agent;
     auto moves = simulateMoves(game, 1, 10000);
-    const Move expectedMove1{Square{1, 2}, Square{6, 2}};
+    const Move expectedMove1{Square{6, 6}, Square{5, 6}};
     EXPECT_EQ(moves[0], expectedMove1);
 }
 
@@ -95,7 +95,7 @@ TEST(AgentTests, TakeAFreePieceWhite) {
     Game game(board, Color::White);
 
     Agent agent;
-    auto moves = simulateMoves(game, 1, 1000);
+    auto moves = simulateMoves(game, 1, 10000);
     const Move expectedMove1{Square{3, 4}, Square{3, 1}};
     EXPECT_EQ(moves[0], expectedMove1);
 }
@@ -112,7 +112,7 @@ TEST(AgentTests, TakeAFreePieceBlack) {
     Game game(board, Color::Black);
 
     Agent agent;
-    auto moves = simulateMoves(game, 1, 1000);
+    auto moves = simulateMoves(game, 1, 10000);
     const Move expectedMove1{Square{3, 1}, Square{3, 4}};
     EXPECT_EQ(moves[0], expectedMove1);
 }

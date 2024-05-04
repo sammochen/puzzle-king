@@ -103,6 +103,7 @@ struct Node {
         // When you initialise a node, you don't unpack it yet
         moves = game.legalMoves();
         numMoves = moves.size();
+
         children.assign(numMoves, std::nullopt);
 
         initialV = eval.evaluate(game);
@@ -114,7 +115,9 @@ struct Node {
 
         std::vector<double> P(numMoves);
 
-        if (isTerminal) {
+        if (isTerminal || depth >= 5) {
+            // Max depth check here I think is appropriate - just take the
+            // current evaluation and not look deeper
             auto normalisedP = Eval::normalise(P);
             expandedNodeStats =
                 ExpandedNodeStats(normalisedP); // I suspect this isnt necessary

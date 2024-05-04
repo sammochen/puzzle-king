@@ -12,6 +12,12 @@
 
 struct Square {
     int row, col;
+    std::string getName() const {
+        std::string s = std::string(1, col + 'a');
+        s.push_back(row + '1');
+        return s;
+    }
+
     bool operator==(const Square &rhs) const {
         return (row == rhs.row) && (col == rhs.col);
     }
@@ -19,7 +25,7 @@ struct Square {
 };
 
 std::ostream &operator<<(std::ostream &os, const Square &square) {
-    return os << "(" << square.row << ", " << square.col << ")";
+    return os << square.getName();
 }
 
 // a move for a board is well defined by the to and from
@@ -32,7 +38,7 @@ struct Move {
 };
 
 std::ostream &operator<<(std::ostream &os, const Move &move) {
-    return os << "(" << move.from << " -> " << move.to << ")";
+    return os << "(" << move.from << "->" << move.to << ")";
 }
 
 // Captures the board state
@@ -118,6 +124,7 @@ struct Board {
 
     void print() const {
         for (char i = '8'; i >= '1'; i--) {
+            std::cout << std::string(1, i) << " ";
             for (char j = 'a'; j <= 'h'; j++) {
                 std::string s = std::string(1, j);
                 s.push_back(i);
@@ -126,5 +133,6 @@ struct Board {
             }
             std::cout << std::endl;
         }
+        std::cout << "  abcdefgh" << std::endl;
     }
 };
