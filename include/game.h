@@ -49,6 +49,19 @@ struct Game {
         return false;
     }
 
+    bool pieceIsHanging() const {
+        Game copy(board, turn.other());
+
+        for (auto move : copy.possibleMoves()) {
+            const auto &target = copy.board.pieces[move.to.row][move.to.col];
+            if (target && target->color == turn) {
+                // if the target is your color, then some piece is hanging
+                return true;
+            }
+        }
+        return false;
+    }
+
     GameStatus getStatus() const {
         bool isInCheck = inCheck();
         bool numLegalMoves = legalMoves().size();

@@ -4,6 +4,7 @@
 #include "eval.h"
 #include "game.h"
 
+// from perspective of color!
 struct ExpandedNodeStats {
     int numMoves;
 
@@ -32,12 +33,12 @@ struct ExpandedNodeStats {
     }
 
     // Return the move index with highest confidence
-    int getMoveWithBestConfidence(bool isWhite) const {
+    int getMoveWithBestConfidence() const {
         double bestConfidence = -1e9;
         int bestIndex = -1;
 
         for (int i = 0; i < numMoves; i++) {
-            const auto curConfidence = getConfidence(i, isWhite);
+            const auto curConfidence = getConfidence(i);
             if (curConfidence > bestConfidence) {
                 bestConfidence = curConfidence;
                 bestIndex = i;
@@ -55,28 +56,17 @@ struct ExpandedNodeStats {
     // Returns the "confidence" of choosing a move.
     // Exploration/exploitation - tries promising moves but will give others a
     // chance
-    double getConfidence(const int moveIndex, const bool isWhite) const {
+    double getConfidence(const int moveIndex) const {
         const int totalN = std::accumulate(N.begin(), N.end(), 0);
         const int n = N[moveIndex];
-        if (n == 0) {
-            return 1000; // always prefer unexplored nodes
-        }
 
-        double p, averageV;
-        if (isWhite) {
-            p = P[moveIndex];
-            averageV = getAverageV(moveIndex);
-        } else {
-            // p is a probability, averageV is [-1, 1]
-            p = 1 - P[moveIndex];
-            averageV = -getAverageV(moveIndex);
-        }
+        double p = P[moveIndex];
+        double averageV = getAverageV(moveIndex);
 
         // the bigger the n, the less important p is
         // https://web.stanford.edu/~surag/posts/alphazero.html
         // TODO the sqrt(2) here is a hyperparameter
-        const double result =
-            averageV + 100 * p * (std::sqrt(totalN)) / (1 + n);
+        const double result = averageV + 2 * p * (std::sqrt(totalN)) / (1 + n);
 
         assert(isfinite(result));
         return result;
@@ -91,7 +81,7 @@ struct Node {
     int depth;
 
     bool isTerminal = false;
-    double initialV = 0;
+    Evaluation initialV = Evaluation::hasNoMate(0);
 
     int numMoves;
     std::vector<Move> moves;
@@ -110,17 +100,17 @@ struct Node {
         isTerminal = game.getStatus() != GameStatus::InProgress;
     }
 
-    double expandNode() {
+    Evaluation expandNode() {
         assert(!expandedNodeStats);
 
-        std::vector<double> P(numMoves);
+        std::vector<Evaluation> P(numMoves);
 
-        if (isTerminal || depth >= 4) {
+        bool isPieceHanging = game.pieceIsHanging();
+
+        if (isTerminal || (!isPieceHanging && depth >= 4)) {
             // Max depth check here I think is appropriate - just take the
             // current evaluation and not look deeper
-            auto normalisedP = Eval::normalise(P);
-            expandedNodeStats =
-                ExpandedNodeStats(normalisedP); // I suspect this isnt necessary
+
             return initialV;
         }
 
@@ -130,13 +120,13 @@ struct Node {
             P[i] = eval.evaluate(nextGame); // this evaluation is -1 to 1
         }
 
-        auto normalisedP = Eval::normalise(P);
+        auto normalisedP = Eval::normalise(P, game.turn);
         expandedNodeStats = ExpandedNodeStats(normalisedP);
         return initialV;
     }
 
     // Search once, and return the valuation of the board.
-    double searchOnce() {
+    Evaluation searchOnce() {
         if (!expandedNodeStats) {
             return expandNode();
         }
@@ -145,8 +135,7 @@ struct Node {
             return initialV;
         }
 
-        const int bestIndex = expandedNodeStats->getMoveWithBestConfidence(
-            game.turn == Color::White);
+        const int bestIndex = expandedNodeStats->getMoveWithBestConfidence();
         assert(bestIndex >= 0 && bestIndex < numMoves);
 
         if (!children[bestIndex]) {
@@ -156,8 +145,9 @@ struct Node {
         }
 
         // No flip - node evaluates from white's perspective
-        const double childResult = children[bestIndex]->searchOnce();
-        expandedNodeStats->addObservation(bestIndex, childResult);
+        const Evaluation childResult = children[bestIndex]->searchOnce();
+        expandedNodeStats->addObservation(bestIndex,
+                                          childResult.evalAsColor(game.turn));
         return childResult;
     }
 
@@ -171,9 +161,8 @@ struct Node {
 
             std::cout << moves[i] << " P[i]=" << expandedNodeStats->P[i]
                       << " Q[i]=" << expandedNodeStats->getAverageV(i)
-                      << " initialV[i]=" << children[i]->initialV << " C[i]="
-                      << expandedNodeStats->getConfidence(i, game.turn ==
-                                                                 Color::White)
+                      << " initialV[i]=" << children[i]->initialV
+                      << " C[i]=" << expandedNodeStats->getConfidence(i)
                       << " N[i]=" << expandedNodeStats->N[i] << std::endl;
         }
     }

@@ -2,23 +2,57 @@
 #include "game.h"
 #include "piece.h"
 
+struct Evaluation {
+    // if has value, + is white's mate, - is black's mate
+    std::optional<std::pair<Color, int>> colorHasMate;
+    double eval; //-1 -> 1
+
+    static Evaluation hasMate(Color color, int mate) {
+        return Evaluation{
+            std::make_optional<std::pair<Color, int>>({color, mate}),
+            color == Color::White ? 1.0 : -1.0};
+    }
+
+    static Evaluation hasNoMate(double eval) {
+        return Evaluation{std::nullopt, eval};
+    }
+
+    // return as -1 -> 1
+    double evalAsColor(Color color) const {
+        return color == Color::White ? eval : -eval;
+    }
+};
+
+std::ostream &operator<<(std::ostream &os, const Evaluation &rhs) {
+    if (rhs.colorHasMate) {
+        os << (rhs.colorHasMate->first == Color::White ? "W" : "B")
+           << rhs.colorHasMate->second;
+    } else {
+        os << rhs.eval;
+    }
+    return os;
+}
+
 // Heuristic - how to valuate one position
 struct Eval {
     // Return 1 when white is winning and -1 when black is winning
-    double evaluate(const Game &game) {
+    Evaluation evaluate(const Game &game) {
         const auto status = game.getStatus();
 
         if (status == GameStatus::WhiteWin) {
-            return 1.0;
+            return Evaluation::hasMate(Color::White, 0);
         }
         if (status == GameStatus::BlackWin) {
-            return -1.0;
+            return Evaluation::hasMate(Color::Black, 0);
+        }
+        if (status == GameStatus::Draw) {
+            return Evaluation::hasNoMate(0);
         }
 
         const double naive_sum = calc_naive_sum(game);
         const double result = sigmoid(naive_sum) * 2 - 1;
         assert(result >= -1 && result <= 1);
-        return result;
+        return Evaluation::hasNoMate(result);
     }
 
     double calc_naive_sum(const Game &game) const {
@@ -49,34 +83,17 @@ struct Eval {
         return res;
     }
 
-    static std::vector<double> normalise(const std::vector<double> &P) {
+    // map to a probability of how much you want to make each move
+    static std::vector<double> normalise(const std::vector<Evaluation> &P,
+                                         Color color) {
         int n = P.size();
-        // I want to normalise a vector such that the sum is 1
-        // and it represents probability of wanting to try it
-        // I think I should "centralise" the numbers and then "shrink"
-        double lo = 1000, hi = -1000;
-        for (const auto &p : P) {
-            if (p < lo) {
-                lo = p;
-            }
-            if (p > hi) {
-                hi = p;
-            }
-        }
-
-        // I want lo to be a little bit lower...
-        // P[i]  is in [-1, 1] right now
-        lo -= 0.5; // ??? this will make all the values seem ok
-
-        if (hi == lo) {
-            return std::vector<double>(n, 1.0 / n);
-        }
 
         std::vector<double> result(n);
 
         double sumOfResult = 0;
         for (int i = 0; i < n; i++) {
-            result[i] = (P[i] - lo) / (hi - lo);
+            // map to [0,1] where 1 is good from the color's perspective
+            result[i] = (P[i].evalAsColor(color) + 1) / 2.0;
             sumOfResult += result[i];
         }
 
@@ -85,13 +102,13 @@ struct Eval {
             return std::vector<double>(n, 1.0 / n);
         }
         if (sumOfResult < 0) {
-            throw std::runtime_error("not allowed to be <0");
+            throw std::runtime_error("sumOfResult < 0 not allowed to be <0");
         }
 
         for (int i = 0; i < n; i++) {
             result[i] /= sumOfResult;
             if (result[i] < 0) {
-                throw std::runtime_error("not allowed to be <0");
+                throw std::runtime_error("result[i] < 0 not allowed to be <0");
             }
         }
 

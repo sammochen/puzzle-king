@@ -148,7 +148,7 @@ TEST(AgentTests, SmotheredMate) {
     Game game(board, Color::White);
 
     Agent agent;
-    const Move move = agent.chooseBestMove(game, 20000);
+    const Move move = agent.chooseBestMove(game, 1000);
     const Move expectedMove{Square{"f7"}, Square{"h6"}};
     EXPECT_EQ(move, expectedMove);
 
