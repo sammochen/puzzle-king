@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 include_directories(include)
 
+add_executable(main main.cpp)
+
 include(FetchContent)
 FetchContent_Declare(
   googletest

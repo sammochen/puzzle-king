@@ -97,8 +97,9 @@ struct Game {
                 if (!board.pieces[row][col])
                     continue;
                 auto piece = *board.pieces[row][col];
-                if (piece.color != turn)
-                    continue; // not your turn
+                if (piece.color != turn) {
+                    continue; // only move your piece
+                }
 
                 if (piece.piece == Piece::King) {
                     for (auto square : possibleKingSquares(row, col)) {
@@ -230,19 +231,23 @@ struct Game {
     std::vector<Square> possibleKnightSquares(const int startRow,
                                               const int startCol) const {
 
+        const auto color = board.pieces[startRow][startCol]->color;
         const std::vector<int> di = {1, -1, 1, -1}, dj = {1, 1, -1, -1};
         const std::vector<std::pair<int, int>> Ls = {{1, 2}, {2, 1}};
         std::vector<Square> result;
         for (int d = 0; d < 4; d++) {
-            {
-                for (const std::pair<int, int> &p : Ls) {
-                    int ii = startRow + di[d] * p.first;
-                    int jj = startCol + dj[d] * p.second;
+            for (const std::pair<int, int> &p : Ls) {
+                int ii = startRow + di[d] * p.first;
+                int jj = startCol + dj[d] * p.second;
 
-                    if (ii < 0 || ii >= 8 || jj < 0 || jj >= 8)
-                        continue;
-                    result.push_back({ii, jj});
+                if (ii < 0 || ii >= 8 || jj < 0 || jj >= 8) {
+                    continue;
                 }
+                if (board.pieces[ii][jj] &&
+                    board.pieces[ii][jj]->color == color) {
+                    break; // cannot go on your own colour
+                }
+                result.push_back({ii, jj});
             }
         }
         return result;
