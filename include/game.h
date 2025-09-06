@@ -121,6 +121,10 @@ struct Game {
                     for (auto square : possibleKnightSquares(row, col)) {
                         result.push_back({{row, col}, square});
                     }
+                } else if (piece.piece == Piece::Pawn) {
+                    for (auto square : possiblePawnSquares(row, col)) {
+                        result.push_back({{row, col}, square});
+                    }
                 }
             }
         }
@@ -250,6 +254,47 @@ struct Game {
                 result.push_back({ii, jj});
             }
         }
+        return result;
+    }
+
+    std::vector<Square> possiblePawnSquares(const int startRow,
+                                            const int startCol) const {
+
+        const auto color = board.pieces[startRow][startCol]->color;
+
+        std::vector<Square> result;
+
+        int mult = color == Color::White ? 1 : -1;
+        std::vector<int> dis = {1};
+        // TODO promotion, en passant
+        if ((color == Color::White && startRow == 1) ||
+            (color == Color::Black && startRow == 6)) {
+            dis.push_back(2);
+        }
+
+        for (auto di : dis) {
+            int ii = startRow + di * mult;
+            int jj = startCol;
+            if (ii < 0 || ii >= 8 || jj < 0 || jj >= 8) {
+                break;
+            }
+            if (board.pieces[ii][jj]) {
+                break; // cannot go on any other piece
+            }
+            result.push_back({ii, jj});
+        }
+        for (auto dj : {-1, 1}) {
+            int ii = startRow + mult;
+            int jj = startCol + dj;
+            if (ii < 0 || ii >= 8 || jj < 0 || jj >= 8) {
+                continue;
+            }
+            // opposite color - can capture
+            if (board.pieces[ii][jj] && board.pieces[ii][jj]->color != color) {
+                result.push_back({ii, jj});
+            }
+        }
+
         return result;
     }
 };
