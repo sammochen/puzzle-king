@@ -12,29 +12,27 @@
 
 struct Square {
     int row, col;
-    std::string getName() const {
-        std::string s = std::string(1, col + 'a');
-        s.push_back(row + '1');
-        return s;
-    }
+    std::string name;
 
-    bool operator==(const Square &rhs) const {
-        return (row == rhs.row) && (col == rhs.col);
+    Square(int row, int col) : row(row), col(col) {
+        name = std::string(1, col + 'a') + std::string(1, row + '1');
     }
-    bool operator!=(const Square &rhs) const { return !operator==(rhs); }
+    Square(std::string name) : Square(name[1] - '1', name[0] - 'a') {}
+
+    const std::string &getName() const { return name; }
+
+    bool operator==(const Square &rhs) const = default;
 };
 
 std::ostream &operator<<(std::ostream &os, const Square &square) {
     return os << square.getName();
 }
 
-// a move for a board is well defined by the to and from
+// A move for a board is well defined by the to and from.
+// It does not have to be legal
 struct Move {
     Square from, to;
-    bool operator==(const Move &rhs) const {
-        return (from == rhs.from) && (to == rhs.to);
-    }
-    bool operator!=(const Move &rhs) const { return !operator==(rhs); }
+    bool operator==(const Move &rhs) const = default;
 };
 
 std::ostream &operator<<(std::ostream &os, const Move &move) {

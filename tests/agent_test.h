@@ -135,3 +135,22 @@ TEST(AgentTests, Fork) {
 
     game = game.makeMove(move);
 }
+
+TEST(AgentTests, SmotheredMate) {
+    Board board("qr----k-"
+                "-----Npp"
+                "--------"
+                "---Q----"
+                "--------"
+                "--------"
+                "--------"
+                "----K---");
+    Game game(board, Color::White);
+
+    Agent agent;
+    const Move move = agent.chooseBestMove(game, 20000);
+    const Move expectedMove{Square{"f7"}, Square{"h6"}};
+    EXPECT_EQ(move, expectedMove);
+
+    game = game.makeMove(move);
+}

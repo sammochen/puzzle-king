@@ -3,7 +3,9 @@
 #include "board.h"
 #include "piece.h"
 
-enum class GameStatus { WhiteWin = 0, BlackWin = 1, InProgress = 2 };
+#include <utility>
+
+enum class GameStatus { WhiteWin = 0, BlackWin = 1, Draw = 2, InProgress = 3 };
 
 // The entire game. outside should only interact with a game
 struct Game {
@@ -28,6 +30,11 @@ struct Game {
         return res;
     }
 
+    Game makeMove(const Move &move) const {
+        Board nextBoard = board.makeMove(move);
+        return Game(nextBoard, turn.other());
+    }
+
     bool inCheck() const {
         Game copy(board, turn.other());
 
@@ -43,27 +50,32 @@ struct Game {
     }
 
     GameStatus getStatus() const {
-        if (inCheckmate()) {
+        bool isInCheck = inCheck();
+        bool numLegalMoves = legalMoves().size();
+
+        // checkmate condition
+        if (isInCheck && numLegalMoves == 0) {
             if (turn == Color::White) {
                 return GameStatus::BlackWin;
             } else {
                 return GameStatus::WhiteWin;
             }
         }
+
+        // stalemate condition
+        if (!isInCheck && numLegalMoves == 0) {
+            return GameStatus::Draw;
+        }
         return GameStatus::InProgress;
     }
 
-    Game makeMove(const Move &move) const {
-        Board nextBoard = board.makeMove(move);
-        return Game(nextBoard, turn.other());
-    }
-
     bool inCheckmate() const {
-        // TODO add inCheck() - right now stalemate is also checkmate
-        return legalMoves().size() == 0;
+        // yep
+        return inCheck() && legalMoves().size() == 0;
     }
 
-    // possible moves go through each piece and go through their moves
+    // possible moves go through each piece and go through their moves, without
+    // caring for legality
     std::vector<Move> possibleMoves() const {
         std::vector<Move> result;
 
@@ -89,6 +101,10 @@ struct Game {
                     }
                 } else if (piece.piece == Piece::Bishop) {
                     for (auto square : possibleBishopSquares(row, col)) {
+                        result.push_back({{row, col}, square});
+                    }
+                } else if (piece.piece == Piece::Knight) {
+                    for (auto square : possibleKnightSquares(row, col)) {
                         result.push_back({{row, col}, square});
                     }
                 }
@@ -196,5 +212,26 @@ struct Game {
     std::vector<Square> possibleBishopSquares(const int startRow,
                                               const int startCol) const {
         return possibleDiagonalSquares(startRow, startCol, 8);
+    }
+
+    std::vector<Square> possibleKnightSquares(const int startRow,
+                                              const int startCol) const {
+
+        const std::vector<int> di = {1, -1, 1, -1}, dj = {1, 1, -1, -1};
+        const std::vector<std::pair<int, int>> Ls = {{1, 2}, {2, 1}};
+        std::vector<Square> result;
+        for (int d = 0; d < 4; d++) {
+            {
+                for (const std::pair<int, int> &p : Ls) {
+                    int ii = startRow + di[d] * p.first;
+                    int jj = startCol + dj[d] * p.second;
+
+                    if (ii < 0 || ii >= 8 || jj < 0 || jj >= 8)
+                        continue;
+                    result.push_back({ii, jj});
+                }
+            }
+        }
+        return result;
     }
 };

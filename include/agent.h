@@ -65,18 +65,18 @@ struct ExpandedNodeStats {
         double p, averageV;
         if (isWhite) {
             p = P[moveIndex];
-            averageV = sumV[moveIndex] / n;
+            averageV = getAverageV(moveIndex);
         } else {
             // p is a probability, averageV is [-1, 1]
             p = 1 - P[moveIndex];
-            averageV = -sumV[moveIndex] / n;
+            averageV = -getAverageV(moveIndex);
         }
 
         // the bigger the n, the less important p is
         // https://web.stanford.edu/~surag/posts/alphazero.html
         // TODO the sqrt(2) here is a hyperparameter
         const double result =
-            averageV + 4.0 * p * (std::sqrt(totalN)) / (1 + n);
+            averageV + 100 * p * (std::sqrt(totalN)) / (1 + n);
 
         assert(isfinite(result));
         return result;
@@ -115,7 +115,7 @@ struct Node {
 
         std::vector<double> P(numMoves);
 
-        if (isTerminal || depth >= 5) {
+        if (isTerminal || depth >= 4) {
             // Max depth check here I think is appropriate - just take the
             // current evaluation and not look deeper
             auto normalisedP = Eval::normalise(P);
